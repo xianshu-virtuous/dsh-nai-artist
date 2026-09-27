@@ -21,7 +21,8 @@
   },
   "scripts": {
     "build": "tsdown && node scripts/copy-webui.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dsh": {
     "bundle": {
@@ -70,7 +71,8 @@
     "lightningcss": "^1.32.0",
     "react": "^18.2.0",
     "tsdown": "^0.22.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.1"
   },
   "license": "MIT"
 }
