@@ -1,0 +1,61 @@
+.card {
+  margin: 6px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--dsh-surface, #1c1e26);
+  border: 1px solid var(--dsh-border, #2e3140);
+  max-width: 480px;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  max-height: 560px;
+  object-fit: contain;
+  background: #101216;
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsh-fg-muted, #9aa0b4);
+}
+
+.model {
+  font-weight: 600;
+  color: var(--dsh-accent, #6ea8ff);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.prompt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: plaintext;
+}
+
+.error {
+  padding: 10px 12px;
+  color: #ff7a8a;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.running {
+  padding: 12px;
+  color: var(--dsh-fg-muted, #9aa0b4);
+  font-size: 13px;
+  animation: nai-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes nai-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
