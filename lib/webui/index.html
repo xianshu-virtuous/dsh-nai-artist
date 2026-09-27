@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAI 绘画工作台 · dsh-nai-artist</title>
+<style>
+  :root {
+    --bg: #14151c;
+    --panel: #1c1e28;
+    --panel-2: #232634;
+    --border: #2e3142;
+    --fg: #e8eaf2;
+    --fg-muted: #9aa0b4;
+    --accent: #6ea8ff;
+    --accent-2: #8b5cf6;
+    --ok: #4ade80;
+    --err: #ff7a8a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.6 system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 16px; margin: 0; flex: 1; }
+  .badge {
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+  }
+  .badge.ok { color: var(--ok); border-color: var(--ok); }
+  .badge.err { color: var(--err); border-color: var(--err); }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  section.full { grid-column: 1 / -1; }
+  h2 { font-size: 14px; margin: 0 0 12px; color: var(--fg-muted); font-weight: 600; }
+  label { display: block; font-size: 12px; color: var(--fg-muted); margin: 12px 0 6px; }
+  textarea, input, select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--fg);
+    padding: 8px 10px;
+    font: inherit;
+  }
+  textarea { resize: vertical; }
+  textarea#description { min-height: 110px; }
+  textarea#tags { min-height: 90px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+  textarea#baseTags, textarea#negative { min-height: 48px; }
+  input[type=number] { width: 90px; }
+  button {
+    background: var(--panel-2);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font: inherit;
+    transition: background .15s;
+  }
+  button:hover { background: #2b2f40; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #0b0f1a; font-weight: 600; }
+  button.primary:hover { background: #5f9bff; }
+  button:disabled { opacity: .5; cursor: wait; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; }
+  .seg button.active { background: var(--accent-2); color: #fff; }
+  .actions { display: flex; gap: 10px; margin-top: 12px; }
+  .param-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .param-grid label { margin: 0 0 4px; }
+  .param-grid > div { display: flex; flex-direction: column; }
+  .param-grid select { width: 100%; }
+  .checks { grid-column: 1 / -1; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .checks label { margin: 0; display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--fg); font-size: 12px; }
+  .checks input[type=checkbox] { width: auto; accent-color: var(--accent); }
+  details.preview { margin-top: 10px; }
+  details.preview summary { cursor: pointer; font-size: 12px; color: var(--fg-muted); }
+  pre { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+  #status { min-height: 20px; margin: 10px 0; font-size: 13px; }
+  #status.error { color: var(--err); white-space: pre-wrap; }
+  #status.loading { color: var(--accent); }
+  #result-img { max-width: 100%; border-radius: 10px; display: block; border: 1px solid var(--border); }
+  .hist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .hist-item { position: relative; cursor: pointer; }
+  .hist-item img { width: 100%; aspect-ratio: 832/1216; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
+  .hist-item .del {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(0,0,0,.6); color: #fff; border: none; border-radius: 6px;
+    width: 22px; height: 22px; font-size: 12px; cursor: pointer;
+  }
+  .hist-item .model {
+    position: absolute; bottom: 4px; left: 4px; right: 4px;
+    background: rgba(0,0,0,.55); color: #ddd; font-size: 10px;
+    border-radius: 6px; padding: 1px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .modal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center;
+  }
+  .modal img { max-width: 92vw; max-height: 90vh; border-radius: 10px; }
+  .modal .cap { position: absolute; bottom: 16px; left: 0; right: 0; text-align: center; font-size: 12px; color: #ccc; }
+  .hint { font-size: 12px; color: var(--fg-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 NAI 绘画工作台</h1>
+  <span class="badge" id="badge-paint">生图 key：检查中…</span>
+  <span class="badge" id="badge-translate">翻译 key：检查中…</span>
+</header>
+
+<main>
+  <section>
+    <h2>画面描述 → NAI tags</h2>
+    <label>模式</label>
+    <div class="seg" id="mode-seg">
+      <button type="button" data-mode="photo" class="active">📷 照片</button>
+      <button type="button" data-mode="drawing">✏️ 插画</button>
+    </div>
+    <label>描述（自然语言，中文/英文皆可）</label>
+    <textarea id="description" placeholder="例如：蓝发的女仆少女坐在窗边，微笑地端着热茶，穿着深蓝色连衣裙和白丝袜，窗外是黄昏的城市…"></textarea>
+    <div class="actions">
+      <button id="btn-translate">翻译成 NAI tags</button>
+      <button id="btn-generate" class="primary">🎨 生成图片</button>
+    </div>
+    <label>NAI tags（翻译结果，可手动编辑；留空则生成时自动翻译）</label>
+    <textarea id="tags" placeholder="（翻译或手动填写，逗号分隔的英文标签）"></textarea>
+    <details class="preview">
+      <summary>最终 Prompt 预览</summary>
+      <pre id="prompt-preview"></pre>
+    </details>
+  </section>
+
+  <section>
+    <h2>参数</h2>
+    <div class="param-grid">
+      <div>
+        <label>模型</label>
+        <select id="model"></select>
+      </div>
+      <div>
+        <label>宽度</label>
+        <input type="number" id="width" min="64" max="4096" step="8">
+      </div>
+      <div>
+        <label>高度</label>
+        <input type="number" id="height" min="64" max="4096" step="8">
+      </div>
+      <div>
+        <label>步数 steps</label>
+        <input type="number" id="steps" min="1" max="100">
+      </div>
+      <div>
+        <label>种子 seed（0=随机）</label>
+        <input type="number" id="seed" min="0">
+      </div>
+      <div>
+        <label>CFG scale</label>
+        <input type="number" id="scale" min="1" max="30" step="0.5">
+      </div>
+      <div>
+        <label>采样器</label>
+        <select id="sampler">
+          <option>k_euler</option>
+          <option>k_euler_ancestral</option>
+          <option>k_dpmpp_2m</option>
+          <option>k_dpmpp_2m_sde</option>
+          <option>k_dpmpp_sde</option>
+          <option>ddim</option>
+          <option>uni_pc</option>
+        </select>
+      </div>
+      <div>
+        <label>噪声调度</label>
+        <select id="noiseSchedule">
+          <option>karras</option>
+          <option>native</option>
+          <option>exponential</option>
+          <option>polyexponential</option>
+        </select>
+      </div>
+      <div>
+        <label>CFG rescale</label>
+        <input type="number" id="cfgRescale" min="0" max="1" step="0.05">
+      </div>
+      <div>
+        <label>uncond_scale</label>
+        <input type="number" id="uncondScale" min="0.5" max="2" step="0.05">
+      </div>
+      <div>
+        <label>uc_preset</label>
+        <select id="ucPreset">
+          <option value="0">0（无）</option>
+          <option value="1">1（轻量）</option>
+          <option value="2">2（标准）</option>
+          <option value="3">3（严格）</option>
+        </select>
+      </div>
+      <div class="checks">
+        <label><input type="checkbox" id="quality"> quality（V4.5 质量增强）</label>
+        <label><input type="checkbox" id="sm"> sm</label>
+        <label><input type="checkbox" id="smDyn"> sm_dyn</label>
+      </div>
+    </div>
+    <label>photo 画风（photo.style_tags，拼到照片模式 prompt 前部）</label>
+    <textarea id="photoStyleTags"></textarea>
+    <label>drawing 画风（drawing.style_tags，拼到插画模式 prompt 前部）</label>
+    <textarea id="drawingStyleTags"></textarea>
+    <label>Base tags（character.base_tags，仅 photo 模式拼入）</label>
+    <textarea id="baseTags"></textarea>
+    <label>负向 prompt（negative）</label>
+    <textarea id="negative"></textarea>
+    <div class="actions">
+      <button id="btn-save-config">保存参数</button>
+      <span class="hint" id="config-status"></span>
+    </div>
+  </section>
+
+  <section class="full">
+    <h2>结果</h2>
+    <div id="status"></div>
+    <img id="result-img" alt="生成结果" hidden>
+  </section>
+
+  <section class="full">
+    <h2>历史</h2>
+    <div class="hist-grid" id="history-grid"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict'
+  var state = { mode: 'photo', profile: null, service: null, busy: false }
+
+  function $(id) { return document.getElementById(id) }
+  function setStatus(text, kind) {
+    var el = $('status')
+    el.textContent = text
+    el.className = kind || ''
+  }
+  function setBusy(busy) {
+    state.busy = busy
+    $('btn-generate').disabled = busy
+    $('btn-translate').disabled = busy
+  }
+
+  async function json(url, options) {
+    var response = await fetch(url, options)
+    var body = await response.json().catch(function () { return null })
+    if (!response.ok) {
+      var message = (body && (body.error || body.message)) || ('HTTP ' + response.status)
+      throw new Error(message)
+    }
+    return body
+  }
+
+  function fillConfig(data) {
+    state.profile = data.profile
+    state.service = data.service
+    var profile = data.profile
+    var mode = profile[state.mode]
+    $('width').value = mode.width
+    $('height').value = mode.height
+    $('steps').value = mode.steps
+    $('seed').value = profile.seed
+    $('scale').value = profile.scale
+    $('sampler').value = profile.sampler
+    $('noiseSchedule').value = profile.noiseSchedule
+    $('cfgRescale').value = profile.cfgRescale
+    $('uncondScale').value = profile.uncondScale
+    $('ucPreset').value = String(profile.ucPreset)
+    $('quality').checked = !!profile.quality
+    $('sm').checked = !!profile.sm
+    $('smDyn').checked = !!profile.smDyn
+    $('baseTags').value = profile.baseTags
+    $('photoStyleTags').value = profile.photo.styleTags
+    $('drawingStyleTags').value = profile.drawing.styleTags
+    $('negative').value = profile.negative
+    var select = $('model')
+    select.innerHTML = ''
+    data.service.models.forEach(function (model) {
+      var option = document.createElement('option')
+      option.value = model
+      option.textContent = model
+      if (model === data.profile.model || model === data.service.defaultModel) option.selected = true
+      select.appendChild(option)
+    })
+    badge('badge-paint', '生图 key：' + (data.service.paintKeyConfigured ? '✓ 已配置' : '✗ 未配置'), data.service.paintKeyConfigured)
+    badge('badge-translate', '翻译 key：' + (data.service.translateKeyConfigured ? '✓ 已配置' : '✗ 未配置'), data.service.translateKeyConfigured)
+  }
+
+  function badge(id, text, ok) {
+    var el = $(id)
+    el.textContent = text
+    el.className = 'badge ' + (ok ? 'ok' : 'err')
+  }
+
+  function readParams() {
+    var profile = state.profile
+    var mode = profile[state.mode]
+    return {
+      model: $('model').value,
+      width: parseInt($('width').value, 10) || mode.width,
+      height: parseInt($('height').value, 10) || mode.height,
+      steps: parseInt($('steps').value, 10) || mode.steps,
+      seed: parseInt($('seed').value, 10) || 0,
+      scale: parseFloat($('scale').value) || profile.scale,
+      sampler: $('sampler').value,
+      noiseSchedule: $('noiseSchedule').value,
+      cfgRescale: parseFloat($('cfgRescale').value) || 0,
+      uncondScale: parseFloat($('uncondScale').value) || 1,
+      ucPreset: $('ucPreset').value,
+      quality: $('quality').checked,
+      sm: $('sm').checked,
+      smDyn: $('smDyn').checked,
+      baseTags: $('baseTags').value,
+      photoStyleTags: $('photoStyleTags').value,
+      drawingStyleTags: $('drawingStyleTags').value,
+      negative: $('negative').value,
+    }
+  }
+
+  async function saveConfig() {
+    if (!state.profile) return
+    var params = readParams()
+    var profile = Object.assign({}, state.profile)
+    profile.model = params.model
+    profile.seed = params.seed
+    profile.scale = params.scale
+    profile.sampler = params.sampler
+    profile.noiseSchedule = params.noiseSchedule
+    profile.cfgRescale = params.cfgRescale
+    profile.uncondScale = params.uncondScale
+    profile.ucPreset = params.ucPreset
+    profile.quality = params.quality
+    profile.sm = params.sm
+    profile.smDyn = params.smDyn
+    profile.baseTags = params.baseTags
+    profile.photo.styleTags = params.photoStyleTags
+    profile.drawing.styleTags = params.drawingStyleTags
+    profile.negative = params.negative
+    profile[state.mode].width = params.width
+    profile[state.mode].height = params.height
+    profile[state.mode].steps = params.steps
+    await json('/api/dsh-nai-artist/config', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-dsh-nai-artist': '1' },
+      body: JSON.stringify(profile),
+    })
+    state.profile = profile
+  }
+
+  $('btn-save-config').addEventListener('click', function () {
+    var status = $('config-status')
+    status.textContent = '保存中…'
+    saveConfig().then(function () {
+      status.textContent = '✓ 已保存'
+      setTimeout(function () { status.textContent = '' }, 2000)
+    }).catch(function (error) {
+      status.textContent = '✗ ' + error.message
+    })
+  })
+
+  var modeButtons = document.querySelectorAll('#mode-seg button')
+  modeButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      state.mode = button.dataset.mode
+      modeButtons.forEach(function (b) { b.classList.toggle('active', b === button) })
+      if (state.profile) {
+        var mode = state.profile[state.mode]
+        $('width').value = mode.width
+        $('height').value = mode.height
+        $('steps').value = mode.steps
+      }
+    })
+  })
+
+  $('btn-translate').addEventListener('click', function () {
+    var description = $('description').value.trim()
+    if (!description) { setStatus('请先填写画面描述', 'error'); return }
+    setStatus('翻译中…', 'loading')
+    setBusy(true)
+    json('/api/dsh-nai-artist/translate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ description: description, mode: state.mode }),
+    }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || '翻译失败')
+      $('tags').value = data.tags
+      $('prompt-preview').textContent = data.finalPrompt
+      setStatus('✓ 翻译完成，可编辑 tags 后生成', 'ok')
+    }).catch(function (error) {
+      setStatus('翻译失败：' + error.message, 'error')
+    }).finally(function () { setBusy(false) })
+  })
+
+  $('btn-generate').addEventListener('click', function () {
+    var description = $('description').value.trim()
+    if (!description) { setStatus('请先填写画面描述', 'error'); return }
+    var tags = $('tags').value.trim()
+    setStatus('保存参数…', 'loading')
+    setBusy(true)
+    saveConfig().then(function () {
+      setStatus('🎨 生成中（大约 30–120 秒）…', 'loading')
+      return json('/api/dsh-nai-artist/generate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          description: description,
+          mode: state.mode,
+          tags: tags || undefined,
+          model: $('model').value,
+          width: parseInt($('width').value, 10),
+          height: parseInt($('height').value, 10),
+          steps: parseInt($('steps').value, 10),
+          seed: parseInt($('seed').value, 10),
+          negative: $('negative').value,
+        }),
+      })
+    }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || '生成失败')
+      var img = $('result-img')
+      img.src = data.imageUrl + '?ts=' + Date.now()
+      img.hidden = false
+      $('prompt-preview').textContent = data.prompt
+      setStatus('✓ 生成完成：' + data.model + '  ' + data.width + '×' + data.height, 'ok')
+      loadHistory()
+    }).catch(function (error) {
+      setStatus('生成失败：' + error.message, 'error')
+    }).finally(function () { setBusy(false) })
+  })
+
+  function loadHistory() {
+    json('/api/dsh-nai-artist/gallery/history').then(function (data) {
+      var grid = $('history-grid')
+      grid.innerHTML = ''
+      var entries = data.entries || []
+      if (entries.length === 0) {
+        grid.textContent = '（还没有作品）'
+        return
+      }
+      entries.forEach(function (entry) {
+        var item = document.createElement('div')
+        item.className = 'hist-item'
+        var url = '/api/dsh-nai-artist/gallery/' + entry.id + '.png'
+        var img = document.createElement('img')
+        img.src = url
+        img.loading = 'lazy'
+        img.alt = entry.prompt
+        var del = document.createElement('button')
+        del.className = 'del'
+        del.textContent = '✕'
+        del.title = '删除'
+        del.addEventListener('click', function (event) {
+          event.stopPropagation()
+          json('/api/dsh-nai-artist/gallery/delete', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ id: entry.id }),
+          }).then(loadHistory).catch(function (error) { alert('删除失败：' + error.message) })
+        })
+        var model = document.createElement('div')
+        model.className = 'model'
+        model.textContent = entry.model
+        item.appendChild(img)
+        item.appendChild(del)
+        item.appendChild(model)
+        item.addEventListener('click', function () { showModal(url, entry.prompt) })
+        grid.appendChild(item)
+      })
+    }).catch(function (error) {
+      $('history-grid').textContent = '历史加载失败：' + error.message
+    })
+  }
+
+  function showModal(url, prompt) {
+    var modal = document.createElement('div')
+    modal.className = 'modal'
+    var img = document.createElement('img')
+    img.src = url
+    var cap = document.createElement('div')
+    cap.className = 'cap'
+    cap.textContent = prompt
+    modal.appendChild(img)
+    modal.appendChild(cap)
+    modal.addEventListener('click', function () { modal.remove() })
+    document.body.appendChild(modal)
+  }
+
+  Promise.resolve()
+    .then(function () { return json('/api/dsh-nai-artist/config') })
+    .then(fillConfig)
+    .then(loadHistory)
+    .catch(function (error) { setStatus('初始化失败：' + error.message, 'error') })
+})()
+</script>
+</body>
+</html>
