@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-nai-artist
+      name: '@dsh-external/dsh-nai-artist'
