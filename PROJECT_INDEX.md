@@ -1,6 +1,6 @@
 # PROJECT_INDEX — dsh-nai-artist
 
-> 最后核验日期：**2026-09-27**（`pnpm run typecheck` / `pnpm test` 19 用例 / `pnpm run build` 全绿；已公开推送）
+> 最后核验日期：**2026-10-11**（面向 DSH `0.2.0-rc.2`：`pnpm run typecheck` / `pnpm test` 19 用例 / `pnpm run build` 全绿；已推送 `origin/main`）
 
 ## 项目定位
 
@@ -8,10 +8,11 @@ DSH 绘画插件：`paint` 工具把自然语言描述翻译成 NovelAI tags 后
 
 ## 权威版本
 
-- `package.json#name` = `@dsh-external/dsh-nai-artist`，`version` = **0.1.1**，`type: module`，license MIT
+- `package.json#name` = `@dsh-external/dsh-nai-artist`，`version` = **0.2.0**，`type: module`，license MIT
 - **远端**：<https://github.com/xianshu-virtuous/dsh-nai-artist>（public；topics：`dsh-plugin` `deepseek-harness`）
 - 入口：`lib/index.js`、`lib/invariant.js`、`lib/client.js`、`lib/webui/index.html`
 - Node `^22.19.0 || >=24.0.0`；包管理器 pnpm；运行时依赖 `@deepseek-ai/dsh-home-paths`
+- 适配基线：DSH `0.2.0-rc.2`（客户端模块机制改由 `dsh-client-modules` + `PLATFORM_MODULES` 基线驱动；`dsh-client-runtime` 在 0.2.0 已不再分发）
 - 源码结构：`src/{index,nai,gallery,store,invariant}.ts` + `src/client/`（React 卡片与入口按钮）+ `src/webui/index.html`
 - 测试：`tests/gallery.spec.ts`、`tests/store.spec.ts`（19 用例，vitest）
 
@@ -19,6 +20,7 @@ DSH 绘画插件：`paint` 工具把自然语言描述翻译成 NovelAI tags 后
 
 - `2026-09-27` — 首次纳入版本控制并按模块分组提交（13 个提交：scaffold → host 五个模块 → client → webui → lib → docs → lock），同日公开推送。
 - `2026-09-27` — 达标修复：补齐根目录 `LICENSE`（此前 `files` 声明了它但文件不存在）、新增 `.gitignore`、**移除安装期 `prepare`**、补 `@deepseek-ai/dsh-client-ui-chat` 类型依赖（修掉 `PaintToolCard` 的隐式 `any`）、补 vitest 测试。
+- `f2cbebf` 2026-10-11 — release 0.2.0：适配 DSH 0.2.0 —— `dsh.client.inject` 移除 0.2.0 已无此包的 `@deepseek-ai/dsh-client-runtime`，以及不再有 client bundle、改为 shell 基线库的 `@deepseek-ai/dsh-client-ui-slots`，保留 `dsh-client-ui-conversation` 与 `dsh-client-ui-tool`；依赖跟到 `0.2.0-rc.2`；已推送 `origin/main`
 - 收录推进：收录 PR 待提（awesome 列表要求仓库创建满 1 天），素材见工作区 `docs/context/awesome-submission/`。
 
 ## 主要阻塞或风险
